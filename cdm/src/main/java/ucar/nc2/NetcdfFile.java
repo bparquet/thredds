@@ -788,16 +788,20 @@ public class NetcdfFile implements ucar.nc2.util.cache.FileCacheable, Closeable 
 
       // look for dynamically loaded IOSPs
       for (IOServiceProvider currentSpi : ServiceLoader.load(IOServiceProvider.class)) {
-        if (currentSpi.isValidFile(raf)) {
-          Class c = currentSpi.getClass();
-          try {
-            spi = (IOServiceProvider) c.newInstance();
-          } catch (InstantiationException e) {
-            throw new IOException("IOServiceProvider " + c.getName() + "must have no-arg constructor."); // shouldnt happen
-          } catch (IllegalAccessException e) {
-            throw new IOException("IOServiceProvider " + c.getName() + " IllegalAccessException: " + e.getMessage()); // shouldnt happen
+        try {
+          if (currentSpi.isValidFile(raf)) {
+            Class c = currentSpi.getClass();
+            try {
+              spi = (IOServiceProvider) c.newInstance();
+            } catch (InstantiationException e) {
+              throw new IOException("IOServiceProvider " + c.getName() + "must have no-arg constructor."); // shouldnt happen
+            } catch (IllegalAccessException e) {
+              throw new IOException("IOServiceProvider " + c.getName() + " IllegalAccessException: " + e.getMessage()); // shouldnt happen
+            }
+            break;
           }
-          break;
+        } catch (Throwable tr) {
+          log.warn("Could not invoke IOServiceProvider from ServiceLoader "+currentSpi.getClass());
         }
       }
 
@@ -805,17 +809,21 @@ public class NetcdfFile implements ucar.nc2.util.cache.FileCacheable, Closeable 
       for (IOServiceProvider registeredSpi : registeredProviders) {
         if (debugSPI) log.info(" try iosp = {}", registeredSpi.getClass().getName());
 
-        if (registeredSpi.isValidFile(raf)) {
-          // need a new instance for thread safety
-          Class c = registeredSpi.getClass();
-          try {
-            spi = (IOServiceProvider) c.newInstance();
-          } catch (InstantiationException e) {
-            throw new IOException("IOServiceProvider " + c.getName() + "must have no-arg constructor."); // shouldnt happen
-          } catch (IllegalAccessException e) {
-            throw new IOException("IOServiceProvider " + c.getName() + " IllegalAccessException: " + e.getMessage()); // shouldnt happen
+        try {
+          if (registeredSpi.isValidFile(raf)) {
+            // need a new instance for thread safety
+            Class c = registeredSpi.getClass();
+            try {
+              spi = (IOServiceProvider) c.newInstance();
+            } catch (InstantiationException e) {
+              throw new IOException("IOServiceProvider " + c.getName() + "must have no-arg constructor."); // shouldnt happen
+            } catch (IllegalAccessException e) {
+              throw new IOException("IOServiceProvider " + c.getName() + " IllegalAccessException: " + e.getMessage()); // shouldnt happen
+            }
+            break;
           }
-          break;
+        } catch (Throwable tr) {
+          log.warn("Could not invoke registered IOServiceProvider "+registeredSpi.getClass());
         }
       }
     }
